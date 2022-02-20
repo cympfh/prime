@@ -5,7 +5,7 @@
   import wasm from "../Cargo.toml";
 
   /// user input number
-  let n = 17;
+  let input_number = "2,147,483,647";
 
   /// wasm module
   let mod = {
@@ -19,20 +19,19 @@
     is_prime: null,
   };
 
-  wasm().then(module => {
-    console.log("wasm loaded successfully");
-    mod.prime_test = module.prime_test;
-    mod.echo = module.echo;
-  });
+  function to_number(input) {
+    return BigInt(input.replace(/[, \n\r\s]/g, ''));
+  }
 
   function entry() {
     clear();
     try {
-      let num = mod.echo(BigInt(n));
-      console.log({n, num});
-      result.number = num;
-      if (num !== BigInt(n)) { throw `${n} cannot be parsed u64`; }
-      result.is_prime = mod.prime_test(num);
+      let n = to_number(input_number);
+      let n_rust = mod.echo(n);
+      console.log({input_number, n, n_rust});
+      result.number = n;
+      if (n !== n_rust) { throw `${n} cannot be parsed u64`; }
+      result.is_prime = mod.prime_test(n);
       console.log(result);
     } catch(e) {
       result.error = e;
@@ -45,6 +44,14 @@
     result.number = null;
     result.is_prime = null;
   }
+
+  wasm().then(module => {
+    console.log("wasm loaded successfully");
+    mod.prime_test = module.prime_test;
+    mod.echo = module.echo;
+    entry();
+  });
+
 </script>
 
 <section class="hero">
@@ -64,15 +71,15 @@
           <input class="input"
                  type="text"
                  placeholder="17"
-                 bind:value={n}
+                 bind:value={input_number}
                  on:keyup|preventDefault={entry}
-                 pattern="^[0-9]+$"
-                 title="You can input only [0-9]+"
+                 pattern="^[0-9 ,]+$"
+                 title="You can input only [0-9 ,]+"
                  required
                  />
         </div>
         <div class="control">
-          <a class="button is-info" on:click={entry}>is?</a>
+          <button type="submit" class="button is-info" on:click={entry}>is?</button>
         </div>
       </div>
     </form>
@@ -88,13 +95,14 @@
           <b>Something Error!</b>
           <code><pre>
   {result.error}</pre></code>
-            <code>{n}</code> is not a <b>Natural</b> Number or <b>TooBig</b> Number?
+            <code>{input_number}</code> is not a <b>Natural</b> Number or <b>TooBig</b> Number?
           Numbers must be unsigned 64bit integers.
         </div>
       </div>
     {/if}
   </div>
 
+  <!--
   <div class="container">
     {#if !result.error && result.number != null}
       <div>
@@ -102,11 +110,12 @@
       </div>
     {/if}
   </div>
+  -->
 
   <div class="container">
     {#if !result.error && result.number != null && result.is_prime != null}
       <div>
-        <Num value={result.number} /> is {#if result.is_prime}prime{:else}not prime{/if}.
+        <Num value={result.number} /> is {#if result.is_prime}Prime{:else}not Prime{/if} Number.
       </div>
     {/if}
   </div>
